@@ -1,0 +1,40 @@
+table * {
+	border: 1px solid #000;
+}
+table {
+	border-collapse: collapse;
+	text-align: end;
+	margin: auto;
+}
+td {
+	padding-left: 10px;
+}
+th {
+	background-color: rgba(0, 0, 0, 0.1);
+	text-align: end;
+	cursor: pointer;
+	padding-left: 10px;
+}
+.unsort::before {
+	content: '↑↓';
+}
+.up::before {
+	content: ' ↑';
+}
+.down::before {
+	content: ' ↓';
+}
+.unsort::before, .up::before, .down::before {
+	color: rgba(0, 0, 0, 0.5);
+}
+th::after {
+	content: '⇔';
+	color: rgba(0, 0, 0, 0.3);
+}
+.column {
+	position: absolute;
+}
+.draggable {
+	z-index: 10000;
+	opacity: 0.5;
+}
