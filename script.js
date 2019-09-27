@@ -49,19 +49,16 @@ class TableWithSortAndDrag {
 			let ths = this.ths;
 			let rows = this.rows;
 			let centers = [];
-			let oldPosition = index;
 
 			document.addEventListener('mousemove', startMoving);
 
 			function startMoving() {
 				let deltaX = Math.abs(event.clientX - initClientX);
 				let deltaY = Math.abs(event.clientY - initClientY);
+				// take 3pxs' shift for start in order to disregard situations when user want to sort,
+				// but mouse accidentally move to 1-2 pxs
 				if( deltaX > 3 || deltaY > 3 ) {
-					column = new Column(index, ths, rows);
-					column.elem.classList.add('draggable');
-
 					splitTableToColumns(index);
-
 					document.removeEventListener('mousemove', startMoving);
 					document.addEventListener('mousemove', onMouseMove);
 				}
@@ -69,9 +66,13 @@ class TableWithSortAndDrag {
 
 			function splitTableToColumns(index) {
 				for(let i = 0; i < ths.length; i++) {
-					i == index ? columns[i] = column : columns[i] = new Column(i, ths, rows);
+					columns.push( new Column(i, ths, rows) );
 				}
+				column = columns[index];
+				column.elem.classList.add('draggable');
+
 				self.table.style.display = 'none';
+				// get absolute positions of columns' centers
 				centers = columns.map((column) => column.centerX);
 				newColumns = columns;
 			}
@@ -100,6 +101,7 @@ class TableWithSortAndDrag {
 			}
 			
 			function moveColumns(position) {
+
 				// create new sequence of columns
 				if(index < position) {
 					newColumns.splice(position - 1, 0, newColumns.splice(index, 1)[0]);
@@ -108,7 +110,9 @@ class TableWithSortAndDrag {
 				// define and assign new positions
 				let frontier = left;
 				newColumns.forEach((col, i) => {
+					// cross-browser defining of border's width
 					let borderWidth = Math.max( +parseInt(getComputedStyle(col.elem).borderLeft + 0), 1);
+
 					if(i == position) {
 						frontier = frontier + parseInt(getComputedStyle(col.elem).width) + borderWidth;
 					} else {
@@ -116,6 +120,7 @@ class TableWithSortAndDrag {
 							frontier = col.elem.getBoundingClientRect().right;
 						}
 				});
+				// redefine centers
 				centers = newColumns.map((column) => column.centerX);
 				if(index < position) {
 					index = Math.max(position - 1, 0);
@@ -158,9 +163,14 @@ class TableWithSortAndDrag {
 		let index = target.cellIndex;
 		fixSizes.call(this, index); // cause content "::before" of headers will be changed
 
+		// sort and change arrows
 		if(target.classList.contains("unsort")) {
 			this.rows = sort(index, this.rows);
-			unsortArrows.call(this);
+			for(let th of this.ths) {
+				th.classList.remove('up');
+				th.classList.remove('down');
+				th.classList.add('unsort');
+			}
 			target.classList.add('up');
 		} else if(target.classList.contains("up")) {
 			this.rows = this.rows.reverse();
@@ -179,8 +189,8 @@ class TableWithSortAndDrag {
 		this.rows = Array.from(this.tbody.rows);
 
 		function sort(i, rows) {
-			// sorting by comparison one-time received values much faster then sorting by comparison innerHTMLs
-		
+			// sorting by comparison one-time received values faster then sorting by comparison innerHTMLs
+			// so first of all it's need to make new array
 			let arr = [];	
 			for(let row of rows) {
 				let arr2 = [];
@@ -192,23 +202,15 @@ class TableWithSortAndDrag {
 			}
 			
 			arr.sort((a,b) => {
-				if(+a[i] && +b[i]) return +a[i] - +b[i];
-				return a[i] > b[i] ? 1 : -1;
+				if(+a[i] && +b[i]) return +a[i] - +b[i]; // numbers
+				return a[i] > b[i] ? 1 : -1;	// strings
 			});
 
 			return arr.map(item => item[item.length - 1]); // return rows as DOM-elements
 		}
 		
-		function unsortArrows() {
-			for(let th of this.ths) {
-				th.classList.remove('up');
-				th.classList.remove('down');
-				th.classList.add('unsort');
-			}
-		}
-
 		function render(tbody, rows) {
-		// operation of generation table via innerHTML is faster then DOM-remove/paste
+		// generate table via innerHTML is faster then DOM-remove/paste
 		tbody.innerHTML = '';
 		let str = '';
 		for(let row of rows) {
