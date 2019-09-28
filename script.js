@@ -31,15 +31,21 @@ class TableWithSortAndDrag {
 	}
 
 	getListeners() {
-		this.table.addEventListener('mousedown', () => {
+		this.table.addEventListener('mousedown', init.bind(this));
+		this.table.addEventListener('touchstart', init.bind(this));
+		
+		function init() {
 			let target = event.target.closest('th');
+
+			let initClientX = (event.type == 'touchstart' ? event.touches[0].clientX : event.clientX);
+			let initClientY = (event.type == 'touchstart' ? event.touches[0].clientY : event.clientY);
+						
 			if(!target) return;
-			event.preventDefault();
+			if(event.type == 'mousedown') event.preventDefault();
 
 			let index = target.cellIndex;
 
-			let initClientX = event.clientX;
-			let initClientY = event.clientY;
+			
 			let shiftX = initClientX - target.getBoundingClientRect().left;
 			let shiftY = initClientY - target.getBoundingClientRect().top;
 			let left = this.table.getBoundingClientRect().left;
@@ -51,16 +57,20 @@ class TableWithSortAndDrag {
 			let centers = [];
 
 			document.addEventListener('mousemove', startMoving);
+			document.addEventListener('touchmove', startMoving);
 
 			function startMoving() {
-				let deltaX = Math.abs(event.clientX - initClientX);
-				let deltaY = Math.abs(event.clientY - initClientY);
+				let deltaX = (event.type == 'touchmove' ? Math.abs(event.touches[0].clientX - initClientX) : Math.abs(event.clientX - initClientX));
+				let deltaY = (event.type == 'touchmove' ? Math.abs(event.touches[0].clientY - initClientY) : Math.abs(event.clientY - initClientY));
+
 				// take 3pxs' shift for start in order to disregard situations when user want to sort,
 				// but mouse accidentally move to 1-2 pxs
 				if( deltaX > 3 || deltaY > 3 ) {
 					splitTableToColumns(index);
 					document.removeEventListener('mousemove', startMoving);
+					document.removeEventListener('touchmove', startMoving);
 					document.addEventListener('mousemove', onMouseMove);
+					document.addEventListener('touchmove', onMouseMove);
 				}
 			}
 
@@ -78,9 +88,11 @@ class TableWithSortAndDrag {
 			}
 	
 			function onMouseMove() {
-				moveAt(column.elem, event.pageX, event.pageY);
+				let pageX = (event.type == 'touchmove' ? event.touches[0].pageX : event.pageX);
+				let pageY = (event.type == 'touchmove' ? event.touches[0].pageY : event.pageY);
+				moveAt(column.elem, pageX, pageY);
 
-				let position = checkPosition(event);
+				let position = checkPosition(pageX);
 				if(position == index || position == index + 1) return;	
 				moveColumns(position);
 			}
@@ -90,10 +102,10 @@ class TableWithSortAndDrag {
 				el.style.top = `${pageY - shiftY}px`;
 			}
 
-			function checkPosition(event) {
+			function checkPosition(pageX) {
 				let i;
 				for(i = 0; i < centers.length; i++) {
-					if(event.pageX < centers[i]) {
+					if(pageX < centers[i]) {
 						return i;
 					}
 				}
@@ -127,10 +139,16 @@ class TableWithSortAndDrag {
 				} else index = position;
 			}
 
-			document.onmouseup = () => {
+			document.addEventListener('mouseup', finishDrag);
+			document.addEventListener('touchend', finishDrag);
+			
+			function finishDrag() {
 				document.removeEventListener('mousemove', startMoving);
+				document.removeEventListener('touchmove', startMoving);
 				document.removeEventListener('mousemove', onMouseMove);
-				document.onmouseup = null;
+				document.removeEventListener('touchmove', onMouseMove);
+				document.removeEventListener('mouseup', finishDrag);
+				document.removeEventListener('touchend', finishDrag);
 				if(!document.querySelector('.draggable')) return;
 				fillTable(newColumns);
 				for(let col of newColumns) col.elem.remove();
@@ -150,7 +168,7 @@ class TableWithSortAndDrag {
 				self.rows = Array.from(self.tbody.rows);
 			}
 			
-		});
+		}
 
 		this.table.addEventListener('click', this.sortAndRender.bind(this));
 
@@ -189,7 +207,7 @@ class TableWithSortAndDrag {
 		this.rows = Array.from(this.tbody.rows);
 
 		function sort(i, rows) {
-			// sorting by comparison one-time received values faster then sorting by comparison innerHTMLs
+			// sorting by comparison one-time received values is faster then sorting by comparison innerHTMLs
 			// so first of all it's need to make new array
 			let arr = [];	
 			for(let row of rows) {

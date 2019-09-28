@@ -5,6 +5,7 @@ table {
 	border-collapse: collapse;
 	text-align: end;
 	margin: auto;
+	white-space: nowrap;
 }
 td {
 	padding-left: 10px;
