@@ -1,3 +1,4 @@
+// class Column for moments of drag
 class Column {
 	constructor(index, ths, rows) {
 		this.createElem(index, ths, rows);
@@ -35,10 +36,10 @@ class TableWithSortAndDrag {
 		this.table.addEventListener('touchstart', init.bind(this));
 		
 		function init() {
-			let target = event.target.closest('th');
+			const target = event.target.closest('th');
 
-			let initClientX = (event.type == 'touchstart' ? event.touches[0].clientX : event.clientX);
-			let initClientY = (event.type == 'touchstart' ? event.touches[0].clientY : event.clientY);
+			const initClientX = (event.type == 'touchstart' ? event.touches[0].clientX : event.clientX);
+			const initClientY = (event.type == 'touchstart' ? event.touches[0].clientY : event.clientY);
 						
 			if(!target) return;
 			if(event.type == 'mousedown') event.preventDefault();
@@ -46,31 +47,32 @@ class TableWithSortAndDrag {
 			let index = target.cellIndex;
 
 			
-			let shiftX = initClientX - target.getBoundingClientRect().left;
-			let shiftY = initClientY - target.getBoundingClientRect().top;
-			let left = this.table.getBoundingClientRect().left;
+			const shiftX = initClientX - target.getBoundingClientRect().left;
+			const shiftY = initClientY - target.getBoundingClientRect().top;
+			const left = this.table.getBoundingClientRect().left;
 
 			let column, columns = [], newColumns = [];
-			let self = this;
-			let ths = this.ths;
-			let rows = this.rows;
+			const self = this;
+			const ths = this.ths;
+			const rows = this.rows;
 			let centers = [];
 
 			document.addEventListener('mousemove', startMoving);
 			document.addEventListener('touchmove', startMoving);
-
+			
+			// preparatory function 
 			function startMoving() {
-				let deltaX = (event.type == 'touchmove' ? Math.abs(event.touches[0].clientX - initClientX) : Math.abs(event.clientX - initClientX));
-				let deltaY = (event.type == 'touchmove' ? Math.abs(event.touches[0].clientY - initClientY) : Math.abs(event.clientY - initClientY));
-
+				const deltaX = (event.type == 'touchmove' ? Math.abs(event.touches[0].clientX - initClientX) : Math.abs(event.clientX - initClientX));
+				const deltaY = (event.type == 'touchmove' ? Math.abs(event.touches[0].clientY - initClientY) : Math.abs(event.clientY - initClientY));
+				
 				// take 3pxs' shift for start in order to disregard situations when user want to sort,
 				// but mouse accidentally move to 1-2 pxs
 				if( deltaX > 3 || deltaY > 3 ) {
 					splitTableToColumns(index);
 					document.removeEventListener('mousemove', startMoving);
 					document.removeEventListener('touchmove', startMoving);
-					document.addEventListener('mousemove', onMouseMove);
-					document.addEventListener('touchmove', onMouseMove);
+					document.addEventListener('mousemove', onPointerMove);
+					document.addEventListener('touchmove', onPointerMove);
 				}
 			}
 
@@ -82,17 +84,17 @@ class TableWithSortAndDrag {
 				column.elem.classList.add('draggable');
 
 				self.table.style.display = 'none';
-				// get absolute positions of columns' centers
+				// get absolute positions of columns' centers for monitoring position of draggable column
 				centers = columns.map((column) => column.centerX);
 				newColumns = columns;
 			}
 	
-			function onMouseMove() {
-				let pageX = (event.type == 'touchmove' ? event.touches[0].pageX : event.pageX);
-				let pageY = (event.type == 'touchmove' ? event.touches[0].pageY : event.pageY);
+			function onPointerMove() {
+				const pageX = (event.type == 'touchmove' ? event.touches[0].pageX : event.pageX);
+				const pageY = (event.type == 'touchmove' ? event.touches[0].pageY : event.pageY);
 				moveAt(column.elem, pageX, pageY);
 
-				let position = checkPosition(pageX);
+				const position = checkPosition(pageX);
 				if(position == index || position == index + 1) return;	
 				moveColumns(position);
 			}
@@ -113,7 +115,6 @@ class TableWithSortAndDrag {
 			}
 			
 			function moveColumns(position) {
-
 				// create new sequence of columns
 				if(index < position) {
 					newColumns.splice(position - 1, 0, newColumns.splice(index, 1)[0]);
@@ -145,8 +146,8 @@ class TableWithSortAndDrag {
 			function finishDrag() {
 				document.removeEventListener('mousemove', startMoving);
 				document.removeEventListener('touchmove', startMoving);
-				document.removeEventListener('mousemove', onMouseMove);
-				document.removeEventListener('touchmove', onMouseMove);
+				document.removeEventListener('mousemove', onPointerMove);
+				document.removeEventListener('touchmove', onPointerMove);
 				document.removeEventListener('mouseup', finishDrag);
 				document.removeEventListener('touchend', finishDrag);
 				if(!document.querySelector('.draggable')) return;
@@ -175,13 +176,13 @@ class TableWithSortAndDrag {
 	}
 
 	sortAndRender() {
-		let target = event.target.closest('th');
+		const target = event.target.closest('th');
 		if(!target) return;
 
-		let index = target.cellIndex;
-		fixSizes.call(this, index); // cause content "::before" of headers will be changed
+		const index = target.cellIndex;
+		fixSizes.call(this, index); // cause content "::before" of headers can change width
 
-		// sort and change arrows
+		// sort and change arrows in content "::before"
 		if(target.classList.contains("unsort")) {
 			this.rows = sort(index, this.rows);
 			for(let th of this.ths) {
@@ -209,9 +210,9 @@ class TableWithSortAndDrag {
 		function sort(i, rows) {
 			// sorting by comparison one-time received values is faster then sorting by comparison innerHTMLs
 			// so first of all it's need to make new array
-			let arr = [];	
+			const arr = [];	
 			for(let row of rows) {
-				let arr2 = [];
+				const arr2 = [];
 				for(let cell of row.cells) {
 					arr2.push(cell.innerHTML);
 				}
@@ -228,7 +229,7 @@ class TableWithSortAndDrag {
 		}
 		
 		function render(tbody, rows) {
-		// generate table via innerHTML is faster then DOM-remove/paste
+		// generate table via innerHTML, cause it's faster then DOM-remove/paste
 		tbody.innerHTML = '';
 		let str = '';
 		for(let row of rows) {
