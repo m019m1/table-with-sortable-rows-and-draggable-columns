@@ -4,8 +4,10 @@ table * {
 table {
 	border-collapse: collapse;
 	text-align: end;
-	margin: auto;
 	white-space: nowrap;
+}
+#grid {
+  margin: 200px auto;
 }
 td {
 	padding-left: 10px;
@@ -34,6 +36,8 @@ th::after {
 }
 .column {
 	position: absolute;
+	margin: 0;
+	padding: 0;
 }
 .draggable {
 	z-index: 10000;
